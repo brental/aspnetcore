@@ -124,6 +124,18 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http3
             }
 
             _frameWriter.Reset(context.Transport.Output, context.ConnectionId);
+
+            context.StreamContext.ConnectionClosed.Register(static s =>
+            {
+                var stream = (Http3Stream)s!;
+
+                // An error code value other than -1 indicates a value was set and the request didn't gracefully complete.
+                var errorCode = stream._errorCodeFeature.Error;
+                if (errorCode >= 0)
+                {
+                    stream.Abort(new ConnectionAbortedException(CoreStrings.Http2StreamResetByClient), (Http3ErrorCode)errorCode);
+                }
+            }, this);
         }
 
         public void InitializeWithExistingContext(IDuplexPipe transport)
@@ -465,7 +477,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http3
             catch (ConnectionResetException ex)
             {
                 error = ex;
-                Abort(new ConnectionAbortedException(ex.Message, ex), (Http3ErrorCode)_errorCodeFeature.Error);
+
+                var resolvedErrorCode = _errorCodeFeature.Error >= 0 ? _errorCodeFeature.Error : 0;
+                Abort(new ConnectionAbortedException(ex.Message, ex), (Http3ErrorCode)resolvedErrorCode);
             }
             catch (Exception ex)
             {

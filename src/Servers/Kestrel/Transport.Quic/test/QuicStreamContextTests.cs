@@ -139,6 +139,11 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Tests
             await serverStream.Transport.Input.CompleteAsync().DefaultTimeout();
             await serverStream.Transport.Output.CompleteAsync().DefaultTimeout();
 
+            Logger.LogInformation("Client reading until end of stream.");
+            var data = await clientStream.ReadUntilEndAsync().DefaultTimeout();
+            Assert.Equal(testData.Length, data.Length);
+            Assert.Equal(testData, data);
+
             var quicStreamContext = Assert.IsType<QuicStreamContext>(serverStream);
 
             Logger.LogInformation("Server waiting for send and receiving loops to complete.");
@@ -149,11 +154,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Tests
             Logger.LogInformation("Server disposing stream.");
             await quicStreamContext.DisposeAsync().DefaultTimeout();
             quicStreamContext.Dispose();
-
-            Logger.LogInformation("Client reading until end of stream.");
-            var data = await clientStream.ReadUntilEndAsync().DefaultTimeout();
-            Assert.Equal(testData.Length, data.Length);
-            Assert.Equal(testData, data);
 
             var quicConnectionContext = Assert.IsType<QuicConnectionContext>(serverConnection);
 
