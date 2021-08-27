@@ -1019,7 +1019,7 @@ namespace Microsoft.AspNetCore.Testing
 
         private TaskCompletionSource _disposingTcs;
         private TaskCompletionSource _disposedTcs;
-        private long? _error;
+        internal long? _error;
 
         public TestStreamContext(bool canRead, bool canWrite, Http3InMemory testBase)
         {
