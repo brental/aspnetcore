@@ -97,5 +97,21 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Tests
                 Assert.Equal(testCert, tlsFeature.ClientCertificate);
             }
         }
+
+        [ConditionalFact]
+        [MsQuicSupported]
+        // https://github.com/dotnet/runtime/issues/57308, RemoteCertificateValidationCallback should allow us to accept a null cert,
+        // but it doesn't right now.
+        [OSSkipCondition(OperatingSystems.Linux | OperatingSystems.MacOSX)]
+        public async Task ClientCertificate_Required_NotSent_ConnectionAborted()
+        {
+            await using var connectionListener = await QuicTestHelpers.CreateConnectionListenerFactory(LoggerFactory, clientCertificateRequired: true);
+
+            var options = QuicTestHelpers.CreateClientConnectionOptions(connectionListener.EndPoint);
+            using var clientConnection = new QuicConnection(options);
+
+            var qex = await Assert.ThrowsAsync<QuicException>(async () => await clientConnection.ConnectAsync().DefaultTimeout());
+            Assert.Equal("Connection has been shutdown by transport. Error Code: 0x80410100", qex.Message);
+        }
     }
 }
