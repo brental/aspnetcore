@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net.Quic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
@@ -183,12 +184,15 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Internal
             try
             {
                 await _stream.WaitForWriteCompletionAsync();
-                Output.CancelPendingRead();
             }
             catch (Exception ex)
             {
                 // Send error to DoSend loop.
-                Transport.Output.Complete(ex);
+                _shutdownWriteReason = ex;
+            }
+            finally
+            {
+                Output.CancelPendingRead();
             }
         }
 
@@ -357,6 +361,13 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Internal
 
                     if (result.IsCanceled)
                     {
+                        // WaitForWritesCompleted provides immediate notification that write-side of stream has completed.
+                        // If the stream or connection is aborted then exception will be available to rethrow.
+                        if (_shutdownWriteReason != null)
+                        {
+                            ExceptionDispatchInfo.Throw(_shutdownWriteReason);
+                        }
+
                         break;
                     }
 
