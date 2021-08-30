@@ -526,6 +526,8 @@ namespace Interop.FunctionalTests.Http3
             var readAsyncTask = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
             var clientHasCancelledSyncPoint = new SyncPoint();
 
+            using var httpEventSource = new HttpEventSourceListener(LoggerFactory);
+
             var builder = CreateHostBuilder(async context =>
             {
                 context.RequestAborted.Register(() =>
@@ -586,6 +588,7 @@ namespace Interop.FunctionalTests.Http3
                 await requestStream.FlushAsync().DefaultTimeout();
                 // Write content
                 await requestStream.WriteAsync(TestData).DefaultTimeout();
+                await requestStream.FlushAsync().DefaultTimeout();
 
                 var response = await responseTask.DefaultTimeout();
 

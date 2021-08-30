@@ -402,6 +402,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Tests
 
             Assert.Equal(TestData, data);
 
+            Logger.LogInformation("Server aborting stream");
             ((IProtocolErrorCodeFeature)serverStream).Error = (long)Http3ErrorCode.InternalError;
             serverStream.Abort(new ConnectionAbortedException("Test message"));
 

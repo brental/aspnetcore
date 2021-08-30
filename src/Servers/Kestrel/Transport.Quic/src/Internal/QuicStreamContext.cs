@@ -188,7 +188,10 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Quic.Internal
             catch (Exception ex)
             {
                 // Send error to DoSend loop.
-                _shutdownWriteReason = ex;
+                lock (_shutdownLock)
+                {
+                    _shutdownReason ??= ex;
+                }
             }
             finally
             {
